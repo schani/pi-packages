@@ -165,7 +165,7 @@ export class Subagent {
 	canBeSteered(): boolean { return this.state.canBeSteered(); }
 	get maxTurns(): number | undefined { return this.execution.maxTurns; }
 
-	readonly abortController: AbortController;
+	abortController: AbortController;
 	private _promise?: Promise<void>;
 	/** Handle on the agent's current run — the initial run, or the live resume that replaced it. */
 	get promise(): Promise<void> | undefined { return this._promise; }
@@ -326,6 +326,10 @@ export class Subagent {
 		this.markRunning(Date.now());
 		this.execution.observer?.onStarted?.(this);
 		this.listeners.wireSignal(this.execution.signal, () => this.abort());
+		if (this.abortController.signal.aborted) {
+			await this.finishCancelledStartup();
+			return;
+		}
 
 		// Guard the await so the no-provider path stays synchronous, preserving
 		// the original run() timing: the factory is called in the same turn as
@@ -346,6 +350,10 @@ export class Subagent {
 			}
 		}
 
+		if (this.abortController.signal.aborted) {
+			await this.finishCancelledStartup();
+			return;
+		}
 		const runConfig = this.execution.getRunConfig?.();
 		try {
 			this.subagentSession = await this.execution.createSubagentSession({
@@ -366,6 +374,10 @@ export class Subagent {
 			return;
 		}
 
+		if (this.abortController.signal.aborted) {
+			await this.finishCancelledStartup();
+			return;
+		}
 		this.flushPendingSteers();
 		this.listeners.attachObserver(subscribeSubagentObserver(this.subagentSession, this.state, {
 			onCompact: (info) => this.execution.observer?.onCompacted?.(this, info),
@@ -383,6 +395,13 @@ export class Subagent {
 		} catch (err) {
 			this.failRun(err);
 		}
+	}
+
+	/** A cancelled acquisition never enters the prompt phase; terminal follows cleanup. */
+	private async finishCancelledStartup(): Promise<void> {
+		this._pendingSteers = [];
+		await this.releaseSession();
+		this.completeRun({ responseText: "", aborted: true, steered: false });
 	}
 
 	/**
@@ -469,8 +488,8 @@ export class Subagent {
 	 * The returned promise always resolves (errors are captured internally) and is
 	 * published as the `promise` getter, so waiters track the resume rather than
 	 * the settled handle of the original run.
-	 * The parent signal flows straight through to resumeTurnLoop — resume does not
-	 * route through this.abortController.
+	 * Each resume owns a fresh abort controller, with the parent signal forwarded
+	 * into it, so both host cancellation and parent cancellation stop that run.
 	 */
 	resume(prompt: string, signal?: AbortSignal): Promise<void> {
 		const subagentSession = this.subagentSession;
@@ -487,13 +506,15 @@ export class Subagent {
 	/** The resume body. Always resolves — errors terminate through failResume(). */
 	private async runResume(subagentSession: SubagentSession, prompt: string, signal?: AbortSignal): Promise<void> {
 		this.resetForResume(Date.now());
+		this.abortController = new AbortController();
+		this.listeners.wireSignal(signal, () => this.abort());
 		this.execution.observer?.onResumeStarted?.(this);
 		this.listeners.attachObserver(subscribeSubagentObserver(subagentSession, this.state, {
 			onCompact: (info) => this.execution.observer?.onCompacted?.(this, info),
 		}));
 
 		try {
-			this.completeResume(await subagentSession.resumeTurnLoop(prompt, signal));
+			this.completeResume(await subagentSession.resumeTurnLoop(prompt, this.abortController.signal));
 		} catch (err) {
 			this.failResume(err);
 		}

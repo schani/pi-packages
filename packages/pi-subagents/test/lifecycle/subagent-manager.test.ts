@@ -1572,7 +1572,7 @@ describe("SubagentManager", () => {
 
         await manager.resume(id, "continue", { signal });
 
-        expect(stub.resumeTurnLoop).toHaveBeenCalledWith("continue", signal);
+        expect(stub.resumeTurnLoop).toHaveBeenCalledWith("continue", manager.getRecord(id)!.abortController.signal);
       });
     });
   });

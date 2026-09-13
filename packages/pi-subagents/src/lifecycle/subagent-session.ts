@@ -97,6 +97,7 @@ export class SubagentSession {
 
   /** Drive the initial run's turn loop; emits `completed` on success. */
   async runTurnLoop(prompt: string, opts: TurnLoopOptions): Promise<TurnLoopResult> {
+    if (opts.signal?.aborted) return { responseText: "", aborted: true, steered: false };
     const session = this._session;
 
     // Track turns for graceful max_turns enforcement.
@@ -153,6 +154,7 @@ export class SubagentSession {
 
   /** Re-prompt the same session (resume); does not emit `completed`. */
   async resumeTurnLoop(prompt: string, signal?: AbortSignal): Promise<string> {
+    if (signal?.aborted) return "";
     const session = this._session;
     const collector = collectResponseText(session);
     const cleanupAbort = forwardAbortSignal(session, signal);
@@ -342,6 +344,7 @@ function forwardAbortSignal(
   const onAbort = (): void => {
     void session.abort();
   };
-  signal.addEventListener("abort", onAbort, { once: true });
+  if (signal.aborted) onAbort();
+  else signal.addEventListener("abort", onAbort, { once: true });
   return () => signal.removeEventListener("abort", onAbort);
 }
