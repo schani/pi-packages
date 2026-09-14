@@ -15,6 +15,7 @@ import {
   createAgentSession,
   DefaultResourceLoader,
   type ExtensionAPI,
+  type InlineExtension,
   getAgentDir,
   ModelRuntime,
   type ResourceLoader,
@@ -63,6 +64,8 @@ import { SubagentsSettingsHandler } from "#src/ui/subagents-settings";
 export interface SubagentsHostOptions {
   /** Checked at actual automatic wake delivery, including previously withheld notifications. */
   shouldWake?: (record: { readonly id: string }) => boolean;
+  /** Explicit child capabilities; never implicitly inherit root-only inline extensions. */
+  childExtensions?: InlineExtension[];
 }
 
 export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
@@ -122,7 +125,10 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
     io: {
       detectEnv,
       getAgentDir,
-      createResourceLoader: (opts) => new DefaultResourceLoader(opts),
+      createResourceLoader: (opts) => new DefaultResourceLoader({
+        ...opts,
+        extensionFactories: host.childExtensions,
+      }),
       deriveSessionDir: deriveSubagentSessionDir,
       createSessionManager: (cwd, dir) => SessionManager.create(cwd, dir),
       createSettingsManager: (cwd, dir) => SdkSettingsManager.create(cwd, dir),
