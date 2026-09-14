@@ -66,9 +66,12 @@ export interface SubagentsHostOptions {
   shouldWake?: (record: { readonly id: string }) => boolean;
   /** Explicit child capabilities; never implicitly inherit root-only inline extensions. */
   childExtensions?: InlineExtension[];
+  /** Embedded hosts may keep process.cwd() outside the session's checkout. */
+  cwd?: string;
 }
 
 export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
+  const cwd = host.cwd ?? process.cwd();
   // ---- Register custom notification renderer ----
   pi.registerMessageRenderer<NotificationDetails>("subagent-notification", createNotificationRenderer());
   pi.registerMessageRenderer<UpdateDetails>("subagent-update", createUpdateRenderer());
@@ -77,7 +80,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
     createWorkspaceNoticeRenderer(),
   );
 
-  const registry = new AgentTypeRegistry(() => loadCustomAgents(process.cwd()));
+  const registry = new AgentTypeRegistry(() => loadCustomAgents(cwd));
 
   // ---- Runtime: all mutable extension state in one place ----
   const runtime = createSubagentRuntime();
@@ -102,7 +105,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
   // onMaxConcurrentChanged is wired to the limiter directly (closure captures by reference).
   const settings = new SettingsManager({
     emit: (event, payload) => pi.events.emit(event, payload),
-    cwd: process.cwd(),
+    cwd,
     agentDir: getAgentDir(),
     onMaxConcurrentChanged: () => limiter.recheck(),
   });
@@ -193,7 +196,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
 
   const manager = new SubagentManager({
     createSubagentSession: (params) => createSubagentSession(params, subagentSessionDeps),
-    baseCwd: process.cwd(),
+    baseCwd: cwd,
     observer,
     limiter,
     getRunConfig: () => settings,
