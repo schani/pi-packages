@@ -64,7 +64,9 @@ import { SubagentsSettingsHandler } from "#src/ui/subagents-settings";
 export interface SubagentsHostOptions {
   /** Checked at actual automatic wake delivery, including previously withheld notifications. */
   shouldWake?: (record: { readonly id: string }) => boolean;
-  /** Explicit child capabilities; never implicitly inherit root-only inline extensions. */
+  /** Explicit child capabilities; never implicitly inherit root-only inline extensions.
+   * When supplied, any child extension load error fails creation before inference.
+   */
   childExtensions?: InlineExtension[];
   /** Embedded hosts may keep process.cwd() outside the session's checkout. */
   cwd?: string;
@@ -149,6 +151,14 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
       // values really are the SDK objects, so widen those three and let every
       // other option type-check against the SDK signature.
       createSession: async ({ sessionManager, resourceLoader, modelRegistry, ...rest }) => {
+        // Explicit host capabilities must not silently replace/drop a discovered
+        // extension on collision. Preserve upstream's default loading policy.
+        if (host.childExtensions !== undefined) {
+          const errors = (resourceLoader as ResourceLoader).getExtensions().errors;
+          if (errors.length > 0) {
+            throw new Error(`Child extension loading failed: ${errors.map(({ path, error }) => `${path}: ${error}`).join("; ")}`);
+          }
+        }
         // Pi builds the child a fresh ModelRuntime whenever it is not given
         // one, and runtime registrations live on the instance rather than in
         // models.json or auth.json — so the child would lose every provider the
