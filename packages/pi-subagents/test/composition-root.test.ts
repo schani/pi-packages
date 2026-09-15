@@ -143,12 +143,12 @@ function makeSessionStartCtx(
 }
 
 /** Run the extension far enough to capture the deps bag the root assembled. */
-async function captureSessionFactoryIO(parentRegistry: unknown) {
+async function captureSessionFactoryIO(parentRegistry: unknown, host: Parameters<typeof subagentsExtension>[1] = {}) {
   vi.mocked(createSubagentSession).mockResolvedValue(
     toSubagentSession(createSubagentSessionStub(createMockSession(), "/sessions/child.jsonl")),
   );
   const { pi, tools, fire } = makePi();
-  subagentsExtension(pi);
+  subagentsExtension(pi, host);
   await fire("session_start", {}, makeSessionStartCtx(parentRegistry, makeRecordingUI()));
 
   await tools.get("subagent").execute(
@@ -167,6 +167,64 @@ async function captureSessionFactoryIO(parentRegistry: unknown) {
   const [, deps] = vi.mocked(createSubagentSession).mock.calls[0];
   return deps;
 }
+
+describe("composition root: explicit working directory", () => {
+  let projectDir: string;
+
+  beforeEach(() => {
+    projectDir = mkdtempSync(join(tmpdir(), "pi-explicit-cwd-"));
+    mkdirSync(join(projectDir, ".pi", "agents"), { recursive: true });
+    writeFileSync(join(projectDir, ".pi", "subagents.json"), JSON.stringify({
+      promptInheritance: { "claude-bridge": "portable" },
+    }));
+    writeFileSync(join(projectDir, ".pi", "agents", "embedded-worker.md"),
+      "---\nname: embedded-worker\ndescription: Worker from the explicit checkout\n---\nInspect this checkout.\n");
+    expect(projectDir).not.toBe(process.cwd());
+  });
+
+  afterEach(() => { rmSync(projectDir, { recursive: true, force: true }); });
+
+  it("loads project settings without changing process.cwd()", async () => {
+    const deps = await captureSessionFactoryIO(makeParentRegistry().registry, { cwd: projectDir });
+    expect(deps.resolvePromptInheritance("claude-bridge")).toBe("portable");
+  });
+
+  async function startEmbeddedHost() {
+    vi.mocked(createSubagentSession).mockClear();
+    vi.mocked(createSubagentSession).mockResolvedValue(
+      toSubagentSession(createSubagentSessionStub(createMockSession(), "/sessions/child.jsonl")),
+    );
+    const { pi, fire } = makePi();
+    subagentsExtension(pi, { cwd: projectDir });
+    await fire("session_start", {}, makeSessionStartCtx(makeParentRegistry().registry, makeRecordingUI()));
+    const service = getSubagentsService();
+    if (!service) throw new Error("Fixture service did not initialize");
+    return { service, fire };
+  }
+
+  it("discovers profiles in the explicit checkout", async () => {
+    const { service, fire } = await startEmbeddedHost();
+    try {
+      const id = service.spawn("embedded-worker", "Inspect the checkout");
+      await service.waitForAll();
+      expect(service.getRecord(id)?.type).toBe("embedded-worker");
+      expect(createSubagentSession).toHaveBeenCalledTimes(1);
+    } finally { await fire("session_shutdown", {}, {}); }
+  });
+
+  it("passes the explicit base directory to workspace preparation", async () => {
+    const { service, fire } = await startEmbeddedHost();
+    const prepare = vi.fn(async () => ({ cwd: projectDir, dispose: vi.fn() }));
+    service.registerWorkspaceProvider({ prepare });
+    try {
+      const id = service.spawn("general-purpose", "Inspect the checkout");
+      await service.waitForAll();
+      expect(prepare).toHaveBeenCalledExactlyOnceWith({
+        agentId: id, agentType: "general-purpose", baseCwd: projectDir,
+      });
+    } finally { await fire("session_shutdown", {}, {}); }
+  });
+});
 
 describe("composition root: io.createSession", () => {
   it("gives the child its own model runtime carrying the parent's runtime-registered providers", async () => {

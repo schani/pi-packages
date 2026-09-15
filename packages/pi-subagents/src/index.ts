@@ -60,7 +60,13 @@ import { AgentWidget } from "#src/ui/agent-widget";
 import { SessionNavigatorHandler } from "#src/ui/session-navigator";
 import { SubagentsSettingsHandler } from "#src/ui/subagents-settings";
 
-export default function (pi: ExtensionAPI) {
+export interface SubagentsHostOptions {
+  /** Working directory used for project discovery and workspace preparation. */
+  cwd?: string;
+}
+
+export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
+  const cwd = host.cwd ?? process.cwd();
   // ---- Register custom notification renderer ----
   pi.registerMessageRenderer<NotificationDetails>("subagent-notification", createNotificationRenderer());
   pi.registerMessageRenderer<UpdateDetails>("subagent-update", createUpdateRenderer());
@@ -69,7 +75,7 @@ export default function (pi: ExtensionAPI) {
     createWorkspaceNoticeRenderer(),
   );
 
-  const registry = new AgentTypeRegistry(() => loadCustomAgents(process.cwd()));
+  const registry = new AgentTypeRegistry(() => loadCustomAgents(cwd));
 
   // ---- Runtime: all mutable extension state in one place ----
   const runtime = createSubagentRuntime();
@@ -93,7 +99,7 @@ export default function (pi: ExtensionAPI) {
   // onMaxConcurrentChanged is wired to the limiter directly (closure captures by reference).
   const settings = new SettingsManager({
     emit: (event, payload) => pi.events.emit(event, payload),
-    cwd: process.cwd(),
+    cwd,
     agentDir: getAgentDir(),
     onMaxConcurrentChanged: () => limiter.recheck(),
   });
@@ -181,7 +187,7 @@ export default function (pi: ExtensionAPI) {
 
   const manager = new SubagentManager({
     createSubagentSession: (params) => createSubagentSession(params, subagentSessionDeps),
-    baseCwd: process.cwd(),
+    baseCwd: cwd,
     observer,
     limiter,
     getRunConfig: () => settings,

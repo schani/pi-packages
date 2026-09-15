@@ -447,6 +447,8 @@ A batteries-included alternative → upstream [`tintinweb/pi-subagents`](https:/
 
 ## Documentation
 
+Embedded hosts can set an [explicit working directory](./docs/explicit-working-directory.md) for project discovery and workspace preparation.
+
 | Document                                                       | Contents                                                                                                       |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [Configuration](./docs/configuration.md)                       | Default agent types, custom agent files and their frontmatter fields, and the `subagents.json` settings file   |
