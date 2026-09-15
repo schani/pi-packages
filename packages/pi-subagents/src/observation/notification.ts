@@ -237,6 +237,7 @@ export class NotificationManager implements NotificationSystem {
       msg: { customType: string; content: string; display: boolean; details?: unknown },
       opts?: { triggerTurn?: boolean; deliverAs?: "steer" | "followUp" | "nextTurn" },
     ) => void,
+    private readonly shouldWake: (record: { readonly id: string }) => boolean = () => true,
   ) {}
 
   sendCompletion(record: Subagent): void {
@@ -370,6 +371,7 @@ export class NotificationManager implements NotificationSystem {
   }
 
   private emitUpdate(record: Subagent, message: string): void {
+    if (!this.shouldWake(record)) return;
     if (!this.canAnnounceUpdate(record)) return;
     // This channel is delivering the message, so no outcome carrier may repeat
     // it — the record renders only what is still owed.
@@ -391,6 +393,7 @@ export class NotificationManager implements NotificationSystem {
   }
 
   private emitIndividualNudge(record: Subagent): void {
+    if (!this.shouldWake(record)) return;
     if (record.claimed) return;
     if (record.consumed) return;
 

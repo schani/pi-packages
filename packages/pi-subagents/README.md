@@ -447,6 +447,8 @@ A batteries-included alternative → upstream [`tintinweb/pi-subagents`](https:/
 
 ## Documentation
 
+Embedded hosts can use [automatic wake control](./docs/host-wake-control.md) to decline parent wakes at delivery time.
+
 | Document                                                       | Contents                                                                                                       |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [Configuration](./docs/configuration.md)                       | Default agent types, custom agent files and their frontmatter fields, and the `subagents.json` settings file   |

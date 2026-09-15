@@ -60,7 +60,12 @@ import { AgentWidget } from "#src/ui/agent-widget";
 import { SessionNavigatorHandler } from "#src/ui/session-navigator";
 import { SubagentsSettingsHandler } from "#src/ui/subagents-settings";
 
-export default function (pi: ExtensionAPI) {
+export interface SubagentsHostOptions {
+  /** Checked at actual automatic wake delivery, including previously withheld notifications. */
+  shouldWake?: (record: { readonly id: string }) => boolean;
+}
+
+export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
   // ---- Register custom notification renderer ----
   pi.registerMessageRenderer<NotificationDetails>("subagent-notification", createNotificationRenderer());
   pi.registerMessageRenderer<UpdateDetails>("subagent-update", createUpdateRenderer());
@@ -80,6 +85,7 @@ export default function (pi: ExtensionAPI) {
   // widget dependency — keeping the construction graph a cycle-free DAG.
   const notifications = new NotificationManager(
     (msg, opts) => pi.sendMessage(msg, opts),
+    host.shouldWake,
   );
 
   // Gate nudge delivery on the parent's agent run. agent_settled fires exactly
