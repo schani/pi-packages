@@ -447,6 +447,8 @@ A batteries-included alternative → upstream [`tintinweb/pi-subagents`](https:/
 
 ## Documentation
 
+Embedded hosts can supply [explicit child extension factories](./docs/child-extension-factories.md) with fail-fast loading.
+
 | Document                                                       | Contents                                                                                                       |
 | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | [Configuration](./docs/configuration.md)                       | Default agent types, custom agent files and their frontmatter fields, and the `subagents.json` settings file   |

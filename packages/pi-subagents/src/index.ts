@@ -16,6 +16,7 @@ import {
   DefaultResourceLoader,
   type ExtensionAPI,
   getAgentDir,
+  type InlineExtension,
   ModelRuntime,
   type ResourceLoader,
   ModelRegistry as SdkModelRegistry,
@@ -60,7 +61,14 @@ import { AgentWidget } from "#src/ui/agent-widget";
 import { SessionNavigatorHandler } from "#src/ui/session-navigator";
 import { SubagentsSettingsHandler } from "#src/ui/subagents-settings";
 
-export default function (pi: ExtensionAPI) {
+export interface SubagentsHostOptions {
+  /** Explicit child capabilities; never implicitly inherit root-only inline extensions.
+   * When supplied, any child extension load error fails creation before inference.
+   */
+  childExtensions?: InlineExtension[];
+}
+
+export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
   // ---- Register custom notification renderer ----
   pi.registerMessageRenderer<NotificationDetails>("subagent-notification", createNotificationRenderer());
   pi.registerMessageRenderer<UpdateDetails>("subagent-update", createUpdateRenderer());
@@ -116,7 +124,10 @@ export default function (pi: ExtensionAPI) {
     io: {
       detectEnv,
       getAgentDir,
-      createResourceLoader: (opts) => new DefaultResourceLoader(opts),
+      createResourceLoader: (opts) => new DefaultResourceLoader({
+        ...opts,
+        extensionFactories: host.childExtensions,
+      }),
       deriveSessionDir: deriveSubagentSessionDir,
       createSessionManager: (cwd, dir) => SessionManager.create(cwd, dir),
       createSettingsManager: (cwd, dir) => SdkSettingsManager.create(cwd, dir),
@@ -134,6 +145,14 @@ export default function (pi: ExtensionAPI) {
       // values really are the SDK objects, so widen those three and let every
       // other option type-check against the SDK signature.
       createSession: async ({ sessionManager, resourceLoader, modelRegistry, ...rest }) => {
+        // Explicit host capabilities must not silently replace/drop a discovered
+        // extension on collision. Leave ordinary extension loading unchanged.
+        if (host.childExtensions !== undefined) {
+          const errors = (resourceLoader as ResourceLoader).getExtensions().errors;
+          if (errors.length > 0) {
+            throw new Error(`Child extension loading failed: ${errors.map(({ path, error }) => `${path}: ${error}`).join("; ")}`);
+          }
+        }
         // Pi builds the child a fresh ModelRuntime whenever it is not given
         // one, and runtime registrations live on the instance rather than in
         // models.json or auth.json — so the child would lose every provider the

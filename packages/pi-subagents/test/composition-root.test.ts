@@ -21,6 +21,7 @@ const sdk = vi.hoisted(() => {
   return {
     childRegistrations,
     childRuntime,
+    DefaultResourceLoader: vi.fn(),
     createRuntime: vi.fn(async (_paths: { authPath: string; modelsPath: string }): Promise<unknown> => childRuntime),
     createAgentSession: vi.fn(
       async (_options: Record<string, unknown>): Promise<unknown> => ({
@@ -45,6 +46,7 @@ vi.mock("@earendil-works/pi-coding-agent", async () => {
     );
   return {
     ...actual,
+    DefaultResourceLoader: sdk.DefaultResourceLoader,
     createAgentSession: sdk.createAgentSession,
     ModelRegistry: sdk.ModelRegistry,
     ModelRuntime: { create: sdk.createRuntime },
@@ -143,12 +145,13 @@ function makeSessionStartCtx(
 }
 
 /** Run the extension far enough to capture the deps bag the root assembled. */
-async function captureSessionFactoryIO(parentRegistry: unknown) {
+async function captureSessionFactoryIO(parentRegistry: unknown, host: Parameters<typeof subagentsExtension>[1] = {}) {
+  vi.mocked(createSubagentSession).mockClear();
   vi.mocked(createSubagentSession).mockResolvedValue(
     toSubagentSession(createSubagentSessionStub(createMockSession(), "/sessions/child.jsonl")),
   );
   const { pi, tools, fire } = makePi();
-  subagentsExtension(pi);
+  subagentsExtension(pi, host);
   await fire("session_start", {}, makeSessionStartCtx(parentRegistry, makeRecordingUI()));
 
   await tools.get("subagent").execute(
@@ -168,7 +171,38 @@ async function captureSessionFactoryIO(parentRegistry: unknown) {
   return deps;
 }
 
+describe("composition root: child extension factories", () => {
+  it.each([false, true])("passes exactly the explicit factories to the loader (empty=%s)", async (empty) => {
+    const factory = vi.fn();
+    const factories = empty ? [] : [factory];
+    const { registry } = makeParentRegistry();
+    const io = (await captureSessionFactoryIO(registry, { childExtensions: factories })).io;
+    sdk.DefaultResourceLoader.mockClear();
+    const options = { cwd: "/tmp/child", agentDir: "/mock/agent-dir" };
+    io.createResourceLoader(options);
+    expect(sdk.DefaultResourceLoader).toHaveBeenCalledExactlyOnceWith({
+      ...options,
+      extensionFactories: factories,
+    });
+  });
+});
+
 describe("composition root: io.createSession", () => {
+  it.each([false, true])("keeps default loading policy but requires coherent explicit child extensions (optedIn=%s)", async optedIn => {
+    const { registry } = makeParentRegistry();
+    const io = (await captureSessionFactoryIO(registry, optedIn ? { childExtensions: [] } : {})).io;
+    sdk.createRuntime.mockClear();
+    sdk.createAgentSession.mockClear();
+    const creation = io.createSession({ cwd: "/tmp/child", agentDir: "/mock/agent-dir", sessionManager: {} as any, settingsManager: {} as any, modelRegistry: registry, tools: [], resourceLoader: { getExtensions: () => ({ errors: [{ path: "collision.mjs", error: "Tool mcp_call conflicts with approved MCP" }] }) } as any });
+    if (optedIn) {
+      await expect(creation).rejects.toThrow("conflicts with approved MCP");
+      expect(sdk.createRuntime).not.toHaveBeenCalled();
+      expect(sdk.createAgentSession).not.toHaveBeenCalled();
+    } else {
+      await creation;
+      expect(sdk.createRuntime).toHaveBeenCalledTimes(1);
+    }
+  });
   it("gives the child its own model runtime carrying the parent's runtime-registered providers", async () => {
     sdk.childRegistrations.native.length = 0;
     sdk.childRegistrations.configured.length = 0;
