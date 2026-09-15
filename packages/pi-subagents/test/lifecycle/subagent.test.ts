@@ -1549,7 +1549,7 @@ describe("Subagent — ask-back", () => {
 
 		await agent.resume("The project one.");
 
-		expect(stub.resumeTurnLoop).toHaveBeenCalledWith("The project one.", undefined);
+		expect(stub.resumeTurnLoop).toHaveBeenCalledWith("The project one.", agent.abortController.signal);
 		expect(agent.status).toBe("completed");
 		expect(agent.result).toBe("Used the project config. Done.");
 		// The question was answered, so it no longer stands.
@@ -1578,13 +1578,14 @@ describe("Subagent.resume() — happy path", () => {
 		expect(agent.result).toBe("resumed");
 	});
 
-	it("passes the prompt and signal straight through to resumeTurnLoop", async () => {
+	it("passes the prompt and a run-owned cancellation signal to resumeTurnLoop", async () => {
 		const { agent, stub } = createResumableAgent();
 		const signal = new AbortController().signal;
 		await agent.resume("continue", signal);
 		expect(stub.resumeTurnLoop).toHaveBeenCalledOnce();
 		expect(stub.resumeTurnLoop.mock.calls[0][0]).toBe("continue");
-		expect(stub.resumeTurnLoop.mock.calls[0][1]).toBe(signal);
+		expect(stub.resumeTurnLoop.mock.calls[0][1]).toBe(agent.abortController.signal);
+		expect(agent.abortController.signal.aborted).toBe(false);
 	});
 
 	it("resets transition state before resuming", async () => {
