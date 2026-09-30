@@ -3,8 +3,11 @@ import { AgentTypeRegistry } from "#src/config/agent-types";
 import { resolveSpawnConfig } from "#src/tools/spawn-config";
 import { makeModel } from "#test/helpers/make-model";
 
-/** Minimal registry with default agents only. */
-const testRegistry = new AgentTypeRegistry(() => new Map());
+/** Registry with a caller-defined replace-mode agent. */
+const testRegistry = new AgentTypeRegistry(() => new Map([["Explore", {
+  name: "Explore", description: "Custom search agent", displayName: "Explore",
+  systemPrompt: "", promptMode: "replace" as const,
+}]]));
 
 /** Shorthand for building ModelInfo. */
 function makeModelInfo(overrides: Partial<Parameters<typeof resolveSpawnConfig>[2]> = {}) {
@@ -192,7 +195,7 @@ describe("resolveSpawnConfig — detailBase and tags", () => {
       defaultSettings,
     );
     if ("error" in result) return;
-    // Explore has promptMode: "replace" → no mode label, no invocation overrides
+    // Replace mode has no mode label or invocation overrides.
     expect(result.presentation.agentTags).toEqual([]);
   });
 
@@ -216,7 +219,7 @@ describe("resolveSpawnConfig — detailBase and tags", () => {
       defaultSettings,
     );
     if ("error" in result) return;
-    // Explore has promptMode: "replace" and no invocation overrides → no tags
+    // Replace mode with no invocation overrides has no tags.
     expect(result.presentation.detailBase.tags).toBeUndefined();
   });
 });

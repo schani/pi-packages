@@ -41,6 +41,15 @@ describe("AgentTool", () => {
 		expect(def.label).toBe("Subagent");
 	});
 
+	it("exposes only general-purpose and provider-neutral model syntax", () => {
+		const def = makeTool(createToolDeps()).toToolDefinition();
+		expect(def.description).toContain("- general-purpose: General-purpose agent");
+		expect(def.description).not.toMatch(/- (Explore|Plan):|Use (Explore|Plan) for|haiku|sonnet|anthropic|claude/i);
+		expect(def.description).toContain('"provider/modelId"');
+		expect(def.parameters.properties.model.description).toContain('"provider/modelId"');
+		expect(def.parameters.properties.model.description).not.toMatch(/haiku|sonnet|anthropic|claude/i);
+	});
+
 	it("includes promptSnippet", () => {
 		const def = makeTool(createToolDeps()).toToolDefinition();
 		expect(def.promptSnippet).toBe(
@@ -48,26 +57,17 @@ describe("AgentTool", () => {
 		);
 	});
 
-	it("derives type list from registry — includes default agents in description", () => {
+	it("derives the type list from the registry", () => {
 		const def = makeTool(createToolDeps()).toToolDefinition();
-		// testRegistry loads default agents: general-purpose, Explore, Plan
 		expect(def.description).toContain("- general-purpose: General-purpose agent");
-		expect(def.description).toContain("- Explore: Fast codebase exploration agent");
 	});
 
-	it("lists the built-in agent guidelines in registry order", () => {
+	it("lists the general-purpose guideline", () => {
 		const def = makeTool(createToolDeps()).toToolDefinition();
-		const guidelines = [
-			"- Use general-purpose for complex tasks that need file editing.",
-			"- Use Explore for codebase searches and code understanding.",
-			"- Use Plan for architecture and implementation planning.",
-		];
-		for (const line of guidelines) expect(def.description).toContain(line);
-		const positions = guidelines.map((line) => def.description.indexOf(line));
-		expect(positions).toEqual([...positions].sort((a, b) => a - b));
+		expect(def.description).toContain("- Use general-purpose for complex tasks that need file editing.");
 	});
 
-	it.for(["Explore", "Plan", "general-purpose"])(
+	it.for(["general-purpose"])(
 		"omits the type-list entry and guideline for a disabled built-in %s",
 		(name) => {
 			const def = makeTool(createToolDepsWithDisabledBuiltInAgents(name)).toToolDefinition();

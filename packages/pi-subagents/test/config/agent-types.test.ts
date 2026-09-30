@@ -16,6 +16,14 @@ function makeAgentConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
 }
 
 describe("AgentTypeRegistry", () => {
+  it("ships only general-purpose while still accepting custom profiles", () => {
+    const registry = new AgentTypeRegistry(() => new Map([["Explore", makeAgentConfig({ name: "Explore" })]]));
+    expect(AgentTypeRegistry.DEFAULT_AGENT_NAMES).toEqual(["general-purpose"]);
+    expect(new AgentTypeRegistry(() => new Map()).getAvailableTypes()).toEqual(["general-purpose"]);
+    expect(registry.getAvailableTypes()).toEqual(["general-purpose", "Explore"]);
+    expect(registry.resolveAgentConfig("Explore").name).toBe("Explore");
+  });
+
   function makeRegistry(userAgents: Map<string, AgentConfig> = new Map()): AgentTypeRegistry {
     return new AgentTypeRegistry(() => userAgents);
   }
@@ -23,9 +31,7 @@ describe("AgentTypeRegistry", () => {
   describe("construction and reload", () => {
     it("loads default agents on construction", () => {
       const registry = makeRegistry();
-      expect(registry.isValidType("general-purpose")).toBe(true);
-      expect(registry.isValidType("Explore")).toBe(true);
-      expect(registry.isValidType("Plan")).toBe(true);
+      expect(registry.getAvailableTypes()).toEqual(["general-purpose"]);
     });
 
     it("does not call loadUserAgents until construction", () => {
@@ -68,13 +74,13 @@ describe("AgentTypeRegistry", () => {
   describe("resolveType", () => {
     it("returns canonical key for exact match", () => {
       const registry = makeRegistry();
-      expect(registry.resolveType("Explore")).toBe("Explore");
+      expect(registry.resolveType("Explore")).toBeUndefined();
       expect(registry.resolveType("general-purpose")).toBe("general-purpose");
     });
 
     it("returns canonical key for case-insensitive match", () => {
       const registry = makeRegistry();
-      expect(registry.resolveType("explore")).toBe("Explore");
+      expect(registry.resolveType("explore")).toBeUndefined();
       expect(registry.resolveType("GENERAL-PURPOSE")).toBe("general-purpose");
     });
 
@@ -87,15 +93,15 @@ describe("AgentTypeRegistry", () => {
   describe("resolveAgentConfig", () => {
     it("returns config for a known enabled type", () => {
       const registry = makeRegistry();
-      const config = registry.resolveAgentConfig("Explore");
-      expect(config.name).toBe("Explore");
-      expect(config.promptMode).toBe("replace");
+      const config = registry.resolveAgentConfig("general-purpose");
+      expect(config.name).toBe("general-purpose");
+      expect(config.promptMode).toBe("append");
     });
 
     it("performs case-insensitive lookup", () => {
       const registry = makeRegistry();
-      const config = registry.resolveAgentConfig("explore");
-      expect(config.name).toBe("Explore");
+      const config = registry.resolveAgentConfig("GENERAL-PURPOSE");
+      expect(config.name).toBe("general-purpose");
     });
 
     it("falls back to general-purpose for unknown type", () => {
@@ -127,9 +133,7 @@ describe("AgentTypeRegistry", () => {
     it("includes all enabled defaults", () => {
       const registry = makeRegistry();
       const types = registry.getAvailableTypes();
-      expect(types).toContain("general-purpose");
-      expect(types).toContain("Explore");
-      expect(types).toContain("Plan");
+      expect(types).toEqual(["general-purpose"]);
     });
 
     it("excludes disabled agents", () => {
@@ -162,10 +166,7 @@ describe("AgentTypeRegistry", () => {
         new Map([["auditor", makeAgentConfig({ name: "auditor" })]])
       );
       const names = registry.getDefaultAgentNames();
-      expect(names).toContain("general-purpose");
-      expect(names).toContain("Explore");
-      expect(names).toContain("Plan");
-      expect(names).not.toContain("auditor");
+      expect(names).toEqual(["general-purpose"]);
     });
   });
 
@@ -184,16 +185,16 @@ describe("AgentTypeRegistry", () => {
   });
 
   describe("isValidType", () => {
-    it("returns true for enabled defaults", () => {
+    it("returns true for the enabled default", () => {
       const registry = makeRegistry();
       expect(registry.isValidType("general-purpose")).toBe(true);
-      expect(registry.isValidType("Explore")).toBe(true);
+      expect(registry.isValidType("Explore")).toBe(false);
     });
 
     it("returns true case-insensitively", () => {
       const registry = makeRegistry();
-      expect(registry.isValidType("explore")).toBe(true);
-      expect(registry.isValidType("PLAN")).toBe(true);
+      expect(registry.isValidType("GENERAL-PURPOSE")).toBe(true);
+      expect(registry.isValidType("explore")).toBe(false);
     });
 
     it("returns false for disabled agents", () => {
@@ -215,12 +216,6 @@ describe("AgentTypeRegistry", () => {
       const registry = makeRegistry();
       const names = registry.getToolNamesForType("general-purpose");
       expect(names).toEqual(BUILTIN_TOOL_NAMES);
-    });
-
-    it("returns restricted tools for Explore", () => {
-      const registry = makeRegistry();
-      const names = registry.getToolNamesForType("Explore");
-      expect(names).toEqual(["read", "bash", "grep", "find", "ls"]);
     });
 
     it("returns custom tool names for user agent", () => {
@@ -263,10 +258,6 @@ describe("AgentTypeRegistry", () => {
   describe("DEFAULT_AGENT_NAMES static property", () => {
     it("is defined on the class", () => {
       expect(AgentTypeRegistry.DEFAULT_AGENT_NAMES).toBeDefined();
-    });
-
-    it("contains the three built-in default names", () => {
-      expect(AgentTypeRegistry.DEFAULT_AGENT_NAMES).toEqual(["general-purpose", "Explore", "Plan"]);
     });
 
     it("is no longer exported from types.ts", async () => {

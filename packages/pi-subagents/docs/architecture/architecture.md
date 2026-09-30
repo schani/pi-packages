@@ -338,7 +338,7 @@ src/
 │
 ├── config/                         agent type definitions and resolution
 │   ├── agent-types.ts              AgentTypeRegistry class
-│   ├── default-agents.ts           built-in agent configs (general-purpose, Explore, Plan)
+│   ├── default-agents.ts           general-purpose agent config
 │   ├── custom-agents.ts            user-defined agent .md file loader
 │   ├── invocation-config.ts        per-call config merge (caller wins unless `locked`); background-mode resolution
 │   └── thinking-level.ts           thinking-level vocabulary and parser, wider than pi-ai's `ThinkingLevel`
@@ -517,7 +517,7 @@ At runtime, consumers use dynamic import for type-safe access to the accessor fu
 const { getSubagentsService } = await import("@gotgenes/pi-subagents");
 const svc = getSubagentsService();
 if (svc) {
-  svc.spawn("Explore", "Check for stale TODOs");
+  svc.spawn("general-purpose", "Check for stale TODOs");
 }
 ```
 

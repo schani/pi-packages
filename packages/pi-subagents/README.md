@@ -26,9 +26,9 @@ Run them in foreground or background, steer them mid-run, resume completed sessi
 - **Ask-back** — an agent that needs information only you have calls `ask_parent` and ends its turn, and every result surfaces the question with the exact `resume` call that answers it; once that agent can no longer be resumed, the result says so and why instead of naming a call that would be refused
 - **Mid-run updates** — an agent that finds something material calls `notify_parent` and keeps working; the message arrives on its own while you are idle and that agent is still running, and otherwise rides that agent's own result, so you hear it exactly once and never as a stale prompt to steer an agent that has finished
 - **Graceful turn limits** — agents get a "wrap up" warning before hard abort, producing clean partial results instead of cut-off output
-- **Case-insensitive agent types** — `"explore"`, `"Explore"`, `"EXPLORE"` all work.
+- **Case-insensitive agent types** — `"general-purpose"`, `"General-Purpose"` both work.
   Unknown types fall back to general-purpose with a note
-- **Fuzzy model selection** — specify models by name (`"haiku"`, `"sonnet"`) instead of full IDs, with automatic filtering to only available/configured models
+- **Fuzzy model selection** — specify models by name instead of full IDs, with automatic filtering to only available/configured models
 - **Context inheritance** — optionally fork the parent conversation into a sub-agent so it knows what's been discussed
 - **Styled completion notifications** — background agent results render as themed, compact notification boxes (icon, stats, result preview) instead of raw XML.
   Expandable to show full output
@@ -52,7 +52,7 @@ The parent agent spawns sub-agents using the `subagent` tool:
 
 ```text
 subagent({
-  subagent_type: "Explore",
+  subagent_type: "general-purpose",
   prompt: "Find all files that handle authentication",
   description: "Find auth files",
   run_in_background: true,
@@ -70,7 +70,7 @@ The extension renders a persistent widget above the editor showing active backgr
 ● Agents
 ├─ ⠹ Agent  Refactor auth module · ↻5≤30 · 5 tool uses · 33.8k token (62%) · 12.3s
 │    ⎿  editing 2 files…
-├─ ⠹ Explore  Find auth files · ↻3 · 3 tool uses · 12.4k token (8%) · 4.1s
+├─ ⠹ Agent  Find auth files · ↻3 · 3 tool uses · 12.4k token (8%) · 4.1s
 │    ⎿  searching…
 ├─ ⠹ Agent  Long-running task · ↻42 · 38 tool uses · 91.0k token (84% · ⇊2) · 2m17s
 │    ⎿  reading…
@@ -119,7 +119,7 @@ Launch a sub-agent.
 | `prompt`            | string       | yes      | The task for the agent                                           |
 | `description`       | string       | yes      | Short 3-5 word summary (shown in UI)                             |
 | `subagent_type`     | string       | yes      | Agent type (built-in or custom)                                  |
-| `model`             | string       | no       | Model — `provider/modelId` or fuzzy name (`"haiku"`, `"sonnet"`) |
+| `model`             | string       | no       | Model — `provider/modelId` or fuzzy name |
 | `thinking`          | string       | no       | Thinking level: off, minimal, low, medium, high, xhigh, max      |
 | `max_turns`         | number       | no       | Max agentic turns. Omit for the agent's own limit                |
 | `run_in_background` | boolean      | no       | Run without blocking                                             |
@@ -292,7 +292,7 @@ Access the subagent service from another extension at runtime:
 ```typescript
 const { getSubagentsService } = await import("@gotgenes/pi-subagents");
 const svc = getSubagentsService();
-svc?.spawn("Explore", "Check for stale TODOs");
+svc?.spawn("general-purpose", "Check for stale TODOs");
 ```
 
 Declare this package as an optional peer dependency.
@@ -303,7 +303,7 @@ See `src/service/service.ts` for the full `SubagentsService` interface and the `
 `spawn` returns the new agent's id immediately — it never waits for the run.
 Use `getRecord(id)` to poll, `steer` to send a message, and the `subagents:completed` event to learn when it finished.
 
-The agent type is canonicalized, so `"explore"` and `"Explore"` reach the same agent.
+The agent type is canonicalized, so `"general-purpose"` and `"General-Purpose"` reach the same agent.
 An unrecognized type falls back to `general-purpose` rather than throwing, matching the `subagent` tool's behavior.
 
 It throws in four cases:
@@ -430,7 +430,7 @@ Anything attaching to the core either subscribes to a lifecycle event, or regist
 - _Policy about what a child may do._
   Tool restriction is allow/ask/deny in a permission layer, not a binary hide in a spawner — see [Migrating from `disallowed_tools`](#migrating-from-disallowed_tools).
 - _Widening a child's tool allowlist with **capability** tools on the agent's behalf._
-  An agent's `tools:` frontmatter is the only thing that admits a capability tool, and no settings key may name one, because a settings-level list would hand a read-only `Explore` agent write-capable tools from a file its author never saw.
+  An agent's `tools:` frontmatter is the only thing that admits a capability tool, and no settings key may name one, because a settings-level list would hand a read-only custom agent write-capable tools from a file its author never saw.
   The core does install its own protocol in every child — the `<active_agent>` tag, the parent-context prefix, and the `ask_parent` / `notify_parent` tools — none of which reaches the filesystem, the shell, or the network.
 - _A global run-mode default._
   Foreground or background is a per-invocation argument and a per-agent frontmatter key; a global flip changes every existing agent file at once.

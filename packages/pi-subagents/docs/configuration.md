@@ -7,14 +7,11 @@ For the tools, commands, events, and service API, see the [README](../README.md)
 
 ## Default Agent Types
 
-| Type              | Tools                      | Model                         | Prompt Mode            | Description                                                                                      |
-| ----------------- | -------------------------- | ----------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `general-purpose` | all 7                      | inherit                       | `append` (parent twin) | Inherits the parent's prompt identity — same rules, CLAUDE.md, project conventions               |
-| `Explore`         | read, bash, grep, find, ls | haiku (falls back to inherit) | `replace`              | Fast codebase exploration (read-only); inherits the parent prompt as a base                      |
-| `Plan`            | read, bash, grep, find, ls | inherit                       | `replace`              | Software architect for implementation planning (read-only); inherits the parent prompt as a base |
+| Type | Tools | Model | Prompt Mode | Description |
+| --- | --- | --- | --- | --- |
+| `general-purpose` | all available | inherit | `append` (parent twin) | Inherits the parent's prompt identity and project conventions |
 
 The `general-purpose` agent is a **parent twin** — it receives the parent's inherited identity and nothing of its own, so it follows the same rules the parent does.
-Explore and Plan use `replace` mode: the parent prompt is the cacheable base and their specialist read-only instructions are appended last, giving them the final say.
 
 Default agents can be **overridden** by creating a `.md` file with the same name (e.g. `.pi/agents/general-purpose.md`), or **disabled** per-project with `enabled: false` frontmatter.
 
@@ -136,13 +133,13 @@ All fields are optional — sensible defaults for everything.
 | `description`       | filename       | Agent description shown in tool listings                                                                                                                                                                                                      |
 | `display_name`      | —              | Display name for UI (e.g. widget, agent list)                                                                                                                                                                                                 |
 | `tools`             | all 7          | The agent's complete tool allowlist — built-in or extension-registered names. `none` for no tools. See [Tool selection](#tool-selection)                                                                                                      |
-| `model`             | inherit parent | Model — `provider/modelId` or fuzzy name (`"haiku"`, `"sonnet"`)                                                                                                                                                                              |
+| `model`             | inherit parent | Model — `provider/modelId` or fuzzy name                                                                                                                                                                              |
 | `thinking`          | inherit        | off, minimal, low, medium, high, xhigh, max. An unrecognized value is dropped, and the agent inherits the parent's level                                                                                                                      |
 | `max_turns`         | unlimited      | Max agentic turns before graceful shutdown. `0` or omit for unlimited                                                                                                                                                                         |
 | `prompt_mode`       | `append`       | `replace`: parent prompt is the cacheable base; body is appended last with full control and no `<agent_instructions>` wrapper. `append`: parent prompt is the base; body is wrapped in `<agent_instructions>` (agent acts as a "parent twin") |
 | `inherit_context`   | `false`        | Fork parent conversation into agent                                                                                                                                                                                                           |
 | `run_in_background` | `false`        | Run in background by default                                                                                                                                                                                                                  |
-| `enabled`           | `true`         | Set to `false` to disable an agent (useful for hiding a default agent per-project)                                                                                                                                                            |
+| `enabled`           | `true`         | Set to `false` to disable an agent                                                                                                                                                            |
 | `locked`            | —              | Fields a `subagent` tool caller may not override. `true` or a list of field names. See [Locking fields against callers](#locking-fields-against-callers)                                                                                      |
 
 The caller decides, and the agent file fills the gaps.

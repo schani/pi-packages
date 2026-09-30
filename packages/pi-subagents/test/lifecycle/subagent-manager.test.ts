@@ -163,7 +163,7 @@ describe("SubagentManager", () => {
 
     describe("type resolution", () => {
       it("stores the canonical type for case-variant input", () => {
-        ({ manager } = createManager());
+        ({ manager } = createManager({ registry: registryWith("Explore", {}) }));
 
         const id = manager.spawn(STUB_SNAPSHOT, "explore", "test", {
           description: "d",
@@ -302,7 +302,7 @@ describe("SubagentManager", () => {
 
     describe("type resolution", () => {
       it("stores the canonical type for case-variant input", async () => {
-        ({ manager } = createManager());
+        ({ manager } = createManager({ registry: registryWith("Explore", {}) }));
 
         const record = await manager.spawnAndWait(STUB_SNAPSHOT, "explore", "test", { description: "d" });
 
