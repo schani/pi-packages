@@ -33,6 +33,22 @@ function fixture(config: Partial<AgentConfig>) {
 }
 
 describe("SDK winning model selector", () => {
+  it.each([{ config: {}, options: { model: "" } }, { config: { model: "" }, options: {} }])(
+    "rejects an empty winning selector before admission (%j)", ({ config, options }) => {
+      const { service, spawn, resolve } = fixture(config);
+      expect(() => service.spawn("probe", "task", options)).toThrow("Invalid model: ");
+      expect(resolve).toHaveBeenCalledExactlyOnceWith("", expect.anything());
+      expect(spawn).not.toHaveBeenCalled();
+    },
+  );
+
+  it("discards an empty caller selector when the profile locks its model", () => {
+    const { service, spawn, resolve } = fixture({ model: "Sol", locked: ["model"] });
+    service.spawn("probe", "task", { model: "" });
+    expect(resolve).toHaveBeenCalledExactlyOnceWith("Sol", expect.anything());
+    expect(spawn.mock.calls[0][3]).toMatchObject({ model: sol, requestedModel: "Sol" });
+  });
+
   it("resolves and preserves an omitted override's profile selector", () => {
     const { service, spawn, resolve } = fixture({ model: "Sol" });
     service.spawn("PROBE", "task");

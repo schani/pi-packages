@@ -45,7 +45,7 @@ export function resolveInvocationModel(
   registry: ModelRegistry | undefined,
   hostResolve?: typeof resolveModel,
 ): ModelResolution {
-  if (!modelInput) return { model: parentModel };
+  if (modelInput === undefined) return { model: parentModel };
   if (!registry) return { error: "No model registry available." };
   const resolved = (hostResolve ?? resolveModel)(modelInput, registry);
   if (typeof resolved !== "string") return { model: resolved };

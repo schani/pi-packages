@@ -72,6 +72,14 @@ describe("resolveSpawnConfig — type resolution", () => {
 });
 
 describe("resolveSpawnConfig — model resolution", () => {
+  it("rejects an explicitly empty hosted model selector", () => {
+    const result = resolveSpawnConfig(
+      { subagent_type: "general-purpose", prompt: "test", description: "d", model: "" },
+      testRegistry, makeModelInfo(), defaultSettings, () => 'Model not found: "".',
+    );
+    expect(result).toEqual({ error: 'Model not found: "".' });
+  });
+
   it("inherits parent model when no model specified", () => {
     const parentModel = makeModel({ id: "claude-sonnet", name: "Claude Sonnet" });
     const result = resolveSpawnConfig(

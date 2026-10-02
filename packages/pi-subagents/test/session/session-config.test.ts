@@ -118,6 +118,13 @@ describe("assembleSessionConfig — default agent shape", () => {
 });
 
 describe("assembleSessionConfig — model resolution", () => {
+  it("rejects an empty hosted profile selector", () => {
+    mockResolveAgentConfig.mockReturnValue(exploreConfig({ model: "" }));
+    expect(() => assembleSessionConfig(
+      "Explore", ctx, {}, mockEnv, mockAgentLookup, mockIO, () => 'Model not found: "".',
+    )).toThrow('Model not found: "".');
+  });
+
   it("returns undefined model when no option, no config model, no parent", () => {
     const result = assembleSessionConfig("Explore", ctx, {}, mockEnv, mockAgentLookup, mockIO);
 

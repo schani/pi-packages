@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveInvocationModel, type ModelRegistry } from "#src/session/model-resolver";
+import { type ModelRegistry, resolveInvocationModel } from "#src/session/model-resolver";
 import { makeModel } from "#test/helpers/make-model";
 
 const old = makeModel({ provider: "openai-codex", id: "gpt-6-sol" });
@@ -12,6 +12,9 @@ const registry: ModelRegistry = {
 const strict = (input: string, models: ModelRegistry) => input.toLowerCase() === "sol" ? models.find("openai-codex", "gpt-6.1-sol")! : `Invalid model: ${input}`;
 
 describe("host model resolver", () => {
+  it("rejects an explicitly empty selector", () => {
+    expect(resolveInvocationModel(old, "", true, registry, strict)).toEqual({ error: "Invalid model: " });
+  });
   it("uses host resolution rather than fuzzy selection", () => {
     expect(resolveInvocationModel(old, "SOL", true, registry, strict)).toEqual({ model: sol });
     expect(resolveInvocationModel(old, "new-sol", false, registry, strict)).toEqual({ error: "Invalid model: new-sol" });

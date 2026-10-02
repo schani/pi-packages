@@ -148,7 +148,7 @@ export class SubagentsServiceAdapter implements SubagentsService {
 
   /** Resolve an optional model-string override against the current session's registry. */
   private resolveModelOption(modelInput: string | undefined): Model<any> | undefined {
-    if (!modelInput) return undefined;
+    if (modelInput === undefined) return undefined;
     const registry = this.runtime.currentCtx?.modelRegistry;
     if (!registry) {
       throw new Error("No model registry available.");

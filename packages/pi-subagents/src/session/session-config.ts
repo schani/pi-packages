@@ -118,7 +118,7 @@ function resolveDefaultModel(
   configModel?: string,
   hostResolve?: (input: string, registry: AssemblerContext["modelRegistry"]) => Model<any> | string,
 ): Model<any> | undefined {
-  if (configModel && hostResolve) {
+  if (configModel !== undefined && hostResolve) {
     const resolved = hostResolve(configModel, registry);
     if (typeof resolved === "string") throw new Error(resolved);
     return resolved;
