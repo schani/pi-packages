@@ -11,6 +11,10 @@ For the tools, commands, events, and service API, see the [README](../README.md)
 | --- | --- | --- | --- | --- |
 | `general-purpose` | all available | inherit | `append` (parent twin) | Inherits the parent's prompt identity and project conventions |
 
+`subagent_type` selects an agent profile, not a model.
+Unknown profiles fail before child creation or inference.
+To choose a model use `model`, e.g. `"provider/modelId"`; host applications may provide product aliases.
+
 The `general-purpose` agent is a **parent twin** — it receives the parent's inherited identity and nothing of its own, so it follows the same rules the parent does.
 
 Default agents can be **overridden** by creating a `.md` file with the same name (e.g. `.pi/agents/general-purpose.md`), or **disabled** per-project with `enabled: false` frontmatter.

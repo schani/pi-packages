@@ -173,15 +173,16 @@ describe("SubagentManager", () => {
         expect(manager.getRecord(id)!.type).toBe("Explore");
       });
 
-      it("falls back to general-purpose for an unknown type", () => {
-        ({ manager } = createManager());
-
-        const id = manager.spawn(STUB_SNAPSHOT, "no-such-agent", "test", {
-          description: "d",
-          background: { kind: "explicit", isBackground: true },
-        });
-
-        expect(manager.getRecord(id)!.type).toBe("general-purpose");
+      it.for(["sol", "no-such-agent"])("rejects unknown profile %s without creating a child", async (type) => {
+        const factory = defaultFactory();
+        ({ manager } = createManager({ createSubagentSession: factory }));
+        expect(() => manager.spawn(STUB_SNAPSHOT, type, "test", {
+          description: "d", background: { kind: "explicit", isBackground: true },
+        })).toThrow(`Unknown agent type "${type}"`);
+        await expect(manager.spawnAndWait(STUB_SNAPSHOT, type, "test", { description: "d" }))
+          .rejects.toThrow(`Unknown agent type "${type}"`);
+        expect(manager.listAgents()).toEqual([]);
+        expect(factory).not.toHaveBeenCalled();
       });
 
       it("throws for a known-but-disabled type", () => {
@@ -353,7 +354,7 @@ describe("SubagentManager", () => {
           }),
         }));
 
-        const pending = manager.spawnAndWait(STUB_SNAPSHOT, "Explore", "test", { description: "d" });
+        const pending = manager.spawnAndWait(STUB_SNAPSHOT, "general-purpose", "test", { description: "d" });
 
         expect(manager.listAgents()[0]?.claimed).toBe(true);
 

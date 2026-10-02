@@ -27,7 +27,7 @@ Run them in foreground or background, steer them mid-run, resume completed sessi
 - **Mid-run updates** — an agent that finds something material calls `notify_parent` and keeps working; the message arrives on its own while you are idle and that agent is still running, and otherwise rides that agent's own result, so you hear it exactly once and never as a stale prompt to steer an agent that has finished
 - **Graceful turn limits** — agents get a "wrap up" warning before hard abort, producing clean partial results instead of cut-off output
 - **Case-insensitive agent types** — `"general-purpose"`, `"General-Purpose"` both work.
-  Unknown types fall back to general-purpose with a note
+  Unknown types fail with available profiles and model-selection guidance.
 - **Fuzzy model selection** — specify models by name instead of full IDs, with automatic filtering to only available/configured models
 - **Context inheritance** — optionally fork the parent conversation into a sub-agent so it knows what's been discussed
 - **Styled completion notifications** — background agent results render as themed, compact notification boxes (icon, stats, result preview) instead of raw XML.
@@ -304,7 +304,8 @@ See `src/service/service.ts` for the full `SubagentsService` interface and the `
 Use `getRecord(id)` to poll, `steer` to send a message, and the `subagents:completed` event to learn when it finished.
 
 The agent type is canonicalized, so `"general-purpose"` and `"General-Purpose"` reach the same agent.
-An unrecognized type falls back to `general-purpose` rather than throwing, matching the `subagent` tool's behavior.
+An unrecognized type throws before spawning, with available profiles and model-selection guidance.
+The `subagent` tool returns the same error.
 
 It throws in four cases:
 

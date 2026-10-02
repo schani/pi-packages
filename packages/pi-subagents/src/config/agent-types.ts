@@ -101,24 +101,13 @@ export class AgentTypeRegistry implements AgentConfigLookup {
     return this.resolveAgentConfig(type).toolNames ?? [...BUILTIN_TOOL_NAMES];
   }
 
-  /** Resolve agent config with guaranteed non-null return. Falls back: unknown → general-purpose → absolute fallback. */
+  /** Resolve a registered agent profile; reject unknown names. */
   resolveAgentConfig(type: string): AgentConfig {
     const key = this.resolveKey(type);
     const config = key ? this.agents.get(key) : undefined;
     if (config) return config;
 
-    const gp = this.agents.get("general-purpose");
-    if (gp) return gp;
-
-    // Absolute fallback (should never happen in practice)
-    return {
-      name: type,
-      displayName: "Agent",
-      description: "General-purpose agent for complex, multi-step tasks",
-      toolNames: BUILTIN_TOOL_NAMES,
-      systemPrompt: "",
-      promptMode: "append",
-    };
+    throw new Error(unknownAgentTypeError(type, this.getAvailableTypes()));
   }
 
   private resolveKey(name: string): string | undefined {
@@ -129,6 +118,11 @@ export class AgentTypeRegistry implements AgentConfigLookup {
     }
     return undefined;
   }
+}
+
+/** Keep profile selection distinct from model selection at every spawn door. */
+export function unknownAgentTypeError(type: string, availableTypes: readonly string[]): string {
+  return `Unknown agent type "${type}". Available types: ${availableTypes.join(", ")}. subagent_type selects an agent profile, not a model. To choose a model use model, e.g. "provider/modelId".`;
 }
 
 /** All known built-in tool names. */

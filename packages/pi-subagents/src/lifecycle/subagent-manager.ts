@@ -8,6 +8,7 @@
 
 import { randomUUID } from "node:crypto";
 import type { Model } from "@earendil-works/pi-ai";
+import { unknownAgentTypeError } from "#src/config/agent-types";
 import { type BackgroundRequest, resolveBackgroundMode } from "#src/config/invocation-config";
 import { debugLog } from "#src/debug";
 import type { ConcurrencyLimiter } from "#src/lifecycle/concurrency-limiter";
@@ -28,6 +29,7 @@ import type { AgentConfig, CompactionInfo, ParentSessionInfo, SubagentType, Thin
 export interface SpawnTypeResolver {
   resolveType(name: string): string | undefined;
   isValidType(type: string): boolean;
+  getAvailableTypes(): string[];
   resolveAgentConfig(type: string): AgentConfig;
 }
 
@@ -332,10 +334,13 @@ export class SubagentManager {
    */
   private resolveSpawn(type: string, background: BackgroundRequest): ResolvedSpawn {
     const canonical = this.registry.resolveType(type);
-    if (canonical !== undefined && !this.registry.isValidType(canonical)) {
+    if (canonical === undefined) {
+      throw new Error(unknownAgentTypeError(type, this.registry.getAvailableTypes()));
+    }
+    if (!this.registry.isValidType(canonical)) {
       throw new Error(`Agent type "${canonical}" is disabled`);
     }
-    const resolvedType = canonical ?? "general-purpose";
+    const resolvedType = canonical;
     const agentConfig = this.registry.resolveAgentConfig(resolvedType);
     return { type: resolvedType, isBackground: resolveBackgroundMode(agentConfig, background) };
   }

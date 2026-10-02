@@ -35,6 +35,16 @@ async function execute(
 }
 
 describe("AgentTool", () => {
+	it.for(["sol", "no-such-agent"])("rejects unknown profile %s before dispatch", async (type) => {
+		const deps = createToolDeps();
+		const result = await execute(deps, { subagent_type: type, prompt: "test", description: "test" });
+		expect(result.content[0].text).toContain(`Unknown agent type "${type}"`);
+		expect(result.content[0].text).toContain("Available types:");
+		expect(result.content[0].text).toContain("model");
+		expect(deps.manager.spawn).not.toHaveBeenCalled();
+		expect(deps.manager.spawnAndWait).not.toHaveBeenCalled();
+	});
+
 	it("returns tool definition with correct name and label", () => {
 		const def = makeTool(createToolDeps()).toToolDefinition();
 		expect(def.name).toBe("subagent");
@@ -46,6 +56,8 @@ describe("AgentTool", () => {
 		expect(def.description).toContain("- general-purpose: General-purpose agent");
 		expect(def.description).not.toMatch(/- (Explore|Plan):|Use (Explore|Plan) for|haiku|sonnet|anthropic|claude/i);
 		expect(def.description).toContain('"provider/modelId"');
+		expect(def.description).toContain("subagent_type selects an agent profile, not a model");
+		expect(def.parameters.properties.subagent_type.description).toContain('To choose a model use model, e.g. "provider/modelId"');
 		expect(def.parameters.properties.model.description).toContain('"provider/modelId"');
 		expect(def.parameters.properties.model.description).not.toMatch(/haiku|sonnet|anthropic|claude/i);
 	});

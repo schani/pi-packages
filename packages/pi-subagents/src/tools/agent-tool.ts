@@ -15,12 +15,12 @@ import {
 	renderOutcomeBody,
 	renderStatusNote,
 } from "#src/observation/outcome-delivery";
+import type { resolveModel } from "#src/session/model-resolver";
 import { spawnBackground } from "#src/tools/background-spawner";
 import { runForeground } from "#src/tools/foreground-runner";
 import { buildAgentGuidelines, buildDetails, buildTypeListText, textResult } from "#src/tools/helpers";
 import { renderAgentResult } from "#src/tools/result-renderer";
 import { type ModelInfo, resolveSpawnConfig, type SpawnPresentation } from "#src/tools/spawn-config";
-import type { resolveModel } from "#src/session/model-resolver";
 import type { ParentSessionInfo, Subagent } from "#src/types";
 import { type AgentDetails, getDisplayName, type Theme } from "#src/ui/display";
 import { GLYPHS } from "#src/ui/glyphs";
@@ -165,7 +165,7 @@ export class AgentTool {
 			"- Use run_in_background for work you don't need immediately. You will be notified when it completes.",
 			"- Use resume with an agent ID to continue a previous agent's work, or to answer an agent that ended its turn with a question.",
 			"- Use steer_subagent to send mid-run messages to a running background agent.",
-			'- Use model to specify a different model as "provider/modelId".',
+			'- subagent_type selects an agent profile, not a model. To choose a model use model, e.g. "provider/modelId".',
 			"- Use thinking to control extended thinking level.",
 			"- Use inherit_context if the agent needs the parent conversation history.",
 		].join("\n");
@@ -192,7 +192,7 @@ ${guidelines}
 					description: "A short (3-5 word) description of the task (shown in UI).",
 				}),
 				subagent_type: Type.String({
-					description: `The type of specialized agent to use. Available types: ${availableTypesText}. Custom agents from .pi/agents/<name>.md (project) or ${agentDir}/agents/<name>.md (global) are also available.`,
+					description: `Agent profile, not a model. To choose a model use model, e.g. "provider/modelId". Available types: ${availableTypesText}. Custom agents from .pi/agents/<name>.md (project) or ${agentDir}/agents/<name>.md (global) are also available.`,
 				}),
 				model: Type.Optional(
 					Type.String({

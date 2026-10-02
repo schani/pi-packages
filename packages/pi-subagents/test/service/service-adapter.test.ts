@@ -13,7 +13,9 @@ import { createTestSubagent, makeStubExecution } from "#test/helpers/make-subage
 import { createMockSession, createSubagentSessionStub, toSubagentSession } from "#test/helpers/mock-session";
 import { STUB_SNAPSHOT } from "#test/helpers/stub-ctx";
 
-const testRegistry = new AgentTypeRegistry(() => new Map());
+const testRegistry = new AgentTypeRegistry(() => new Map(["Explore", "Plan"].map((name) => [name, {
+  name, description: "Custom agent", systemPrompt: "", promptMode: "replace" as const,
+}])));
 
 describe("toSubagentRecord", () => {
   const baseRecord = (() => {
@@ -283,6 +285,15 @@ describe("SubagentsServiceAdapter — getRecord and listAgents", () => {
 });
 
 describe("SubagentsServiceAdapter — spawn", () => {
+  it.for(["sol", "no-such-agent"])("rejects unknown profile %s before model resolution or spawn", (type) => {
+    const manager = createManagerStub();
+    const resolveModel = vi.fn(() => makeModel({ id: "test" }));
+    const svc = new SubagentsServiceAdapter(manager, resolveModel, makeRuntimeStub(), testRegistry);
+    expect(() => svc.spawn(type, "test", { model: "test" })).toThrow(`Unknown agent type "${type}"`);
+    expect(resolveModel).not.toHaveBeenCalled();
+    expect(manager.spawn).not.toHaveBeenCalled();
+  });
+
   it("throws when currentCtx is undefined (no active session)", () => {
     const svc = new SubagentsServiceAdapter(
       createManagerStub(),

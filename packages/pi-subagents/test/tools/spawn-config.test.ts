@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { AgentTypeRegistry } from "#src/config/agent-types";
 import { resolveSpawnConfig } from "#src/tools/spawn-config";
 import { makeModel } from "#test/helpers/make-model";
@@ -31,20 +31,16 @@ describe("resolveSpawnConfig — type resolution", () => {
     expect("error" in result && result.error).toBeFalsy();
     if ("error" in result) return;
     expect(result.identity.subagentType).toBe("general-purpose");
-    expect(result.identity.fellBack).toBe(false);
   });
 
-  it("falls back to general-purpose for unknown agent type", () => {
+  it.for(["sol", "unknown-type"])("rejects unknown profile %s before model resolution", (type) => {
+    const resolveModel = vi.fn(() => "Model must not be resolved");
     const result = resolveSpawnConfig(
-      { subagent_type: "unknown-type", prompt: "test", description: "d" },
-      testRegistry,
-      makeModelInfo(),
-      defaultSettings,
+      { subagent_type: type, prompt: "test", description: "d", model: "sol" },
+      testRegistry, makeModelInfo(), defaultSettings, resolveModel,
     );
-    expect("error" in result && result.error).toBeFalsy();
-    if ("error" in result) return;
-    expect(result.identity.subagentType).toBe("general-purpose");
-    expect(result.identity.fellBack).toBe(true);
+    expect(resolveModel).not.toHaveBeenCalled();
+    expect(result).toEqual({ error: `Unknown agent type "${type}". Available types: general-purpose, Explore. subagent_type selects an agent profile, not a model. To choose a model use model, e.g. "provider/modelId".` });
   });
 
   it("sets displayName from registry", () => {
@@ -335,48 +331,9 @@ describe("resolveSpawnConfig — notes", () => {
     ]);
   });
 
-  it("carries the unknown-type note when the type fell back", () => {
-    const result = resolveSpawnConfig(
-      { subagent_type: "unknown-type", prompt: "test", description: "d" },
-      testRegistry,
-      makeModelInfo(),
-      defaultSettings,
-    );
-    if ("error" in result) return;
-    expect(result.notes).toEqual([
-      'Note: Unknown agent type "unknown-type" — using general-purpose.',
-    ]);
-  });
 
-  it("reports the fallback before the lock when a project pins the fallback agent", () => {
-    const pinnedFallback = new AgentTypeRegistry(
-      () =>
-        new Map([
-          [
-            "general-purpose",
-            {
-              name: "general-purpose",
-              description: "Pinned general-purpose",
-              systemPrompt: "",
-              promptMode: "append" as const,
-              maxTurns: 7,
-              locked: true as const,
-            },
-          ],
-        ]),
-    );
-    const result = resolveSpawnConfig(
-      { subagent_type: "unknown-type", prompt: "test", description: "d", max_turns: 3 },
-      pinnedFallback,
-      makeModelInfo(),
-      defaultSettings,
-    );
-    if ("error" in result) throw new Error(result.error);
-    expect(result.notes).toEqual([
-      'Note: Unknown agent type "unknown-type" — using general-purpose.',
-      'Note: agent "general-purpose" locks max_turns, so the max_turns parameter was ignored.',
-    ]);
-  });
+
+
 });
 
 describe("resolveSpawnConfig — prompt and rawType passthrough", () => {

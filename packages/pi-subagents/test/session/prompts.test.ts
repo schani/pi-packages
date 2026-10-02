@@ -40,7 +40,7 @@ describe("buildAgentPrompt", () => {
   });
 
   it("handles non-git repos", () => {
-    const config = getDefaultConfig("Explore");
+    const config = getDefaultConfig("general-purpose");
     const prompt = buildAgentPrompt(config, "/workspace", envNoGit);
     expect(prompt).toContain("Not a git repository");
     expect(prompt).not.toContain("Branch:");

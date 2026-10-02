@@ -119,10 +119,10 @@ describe("spawnBackground", () => {
     const { manager } = createToolDeps();
     const result = spawnBackground(
       manager,
-      makeParams({ config: makeConfig({ fellBack: true, rawType: "unknown-type" }) }),
+      makeParams({ config: makeConfig({ notes: ["LOCK_NOTE"] }) }),
     );
     expect(result.content[0].text).toMatch(
-      /^Note: Unknown agent type "unknown-type" — using general-purpose\.\n\nAgent (started|queued) in background\./,
+      /^LOCK_NOTE\n\nAgent (started|queued) in background\./,
     );
   });
 

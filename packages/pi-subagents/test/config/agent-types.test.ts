@@ -104,10 +104,8 @@ describe("AgentTypeRegistry", () => {
       expect(config.name).toBe("general-purpose");
     });
 
-    it("falls back to general-purpose for unknown type", () => {
-      const registry = makeRegistry();
-      const config = registry.resolveAgentConfig("nonexistent");
-      expect(config.name).toBe("general-purpose");
+    it.for(["sol", "nonexistent"])("rejects unknown profile %s", (type) => {
+      expect(() => makeRegistry().resolveAgentConfig(type)).toThrow(`Unknown agent type "${type}"`);
     });
 
     it("returns config for disabled type (no fallback for existing disabled)", () => {
@@ -225,10 +223,8 @@ describe("AgentTypeRegistry", () => {
       expect(registry.getToolNamesForType("auditor")).toEqual(["read", "grep"]);
     });
 
-    it("returns BUILTIN_TOOL_NAMES for unknown type", () => {
-      const registry = makeRegistry();
-      const names = registry.getToolNamesForType("nonexistent");
-      expect(names).toEqual(BUILTIN_TOOL_NAMES);
+    it("rejects unknown type instead of granting built-in tools", () => {
+      expect(() => makeRegistry().getToolNamesForType("nonexistent")).toThrow("Unknown agent type");
     });
 
     it("returns an empty list for an agent that declared tools: none", () => {

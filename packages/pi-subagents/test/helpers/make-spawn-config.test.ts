@@ -7,7 +7,6 @@ describe("createResolvedSpawnConfig", () => {
       identity: {
         subagentType: "general-purpose",
         rawType: "general-purpose",
-        fellBack: false,
         displayName: "Agent",
       },
       notes: [],
@@ -59,18 +58,9 @@ describe("createResolvedSpawnConfig", () => {
     expect(config.execution.agentInvocation.runInBackground).toBe(true);
   });
 
-  it("defaults rawType to subagentType but keeps an explicit fallback rawType", () => {
-    expect(createResolvedSpawnConfig().identity.rawType).toBe("general-purpose");
-    const fallback = createResolvedSpawnConfig({ fellBack: true, rawType: "unknown-type" });
-    expect(fallback.identity.fellBack).toBe(true);
-    expect(fallback.identity.rawType).toBe("unknown-type");
-  });
 
-  it("derives the unknown-type note from fellBack and rawType", () => {
-    expect(createResolvedSpawnConfig({ fellBack: true, rawType: "unknown-type" }).notes).toEqual([
-      'Note: Unknown agent type "unknown-type" — using general-purpose.',
-    ]);
-  });
+
+
 
   it("mirrors displayName, description, subagentType, and model into presentation.detailBase", () => {
     const config = createResolvedSpawnConfig({
