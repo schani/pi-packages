@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 import { type BackgroundParams, spawnBackground } from "#src/tools/background-spawner";
 import { createToolDeps } from "#test/helpers/make-deps";
+import { makeModel } from "#test/helpers/make-model";
 import { createResolvedSpawnConfig } from "#test/helpers/make-spawn-config";
-import { createTestSubagent } from "#test/helpers/make-subagent";
+import { createTestSubagent, makeStubExecution } from "#test/helpers/make-subagent";
 import { createMockSession, createSubagentSessionStub, toSubagentSession } from "#test/helpers/mock-session";
 import { STUB_SNAPSHOT } from "#test/helpers/stub-ctx";
 
@@ -27,6 +28,19 @@ function makeParams(overrides: Partial<BackgroundParams> = {}): BackgroundParams
 }
 
 describe("spawnBackground", () => {
+  it("includes the winning selector and resolved child identity in its receipt", () => {
+    const model = makeModel({ provider: "openai-codex", id: "gpt-6.1-sol" });
+    const record = createTestSubagent({
+      status: "queued", execution: makeStubExecution({ model, requestedModel: "SoL" }),
+    });
+    const { manager } = createToolDeps();
+    manager.getRecord = vi.fn().mockReturnValue(record);
+    const result = spawnBackground(manager, makeParams());
+    expect(result.details).toMatchObject({
+      requestedModel: "SoL", resolvedModel: { provider: model.provider, id: model.id },
+    });
+  });
+
   /**
    * The door declares a commitment rather than a default, because
    * resolveSpawnConfig already merged the agent's frontmatter and AgentTool

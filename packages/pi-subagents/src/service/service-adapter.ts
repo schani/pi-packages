@@ -6,6 +6,8 @@
  */
 
 import type { Model } from "@earendil-works/pi-ai";
+import type { AgentConfigLookup } from "#src/config/agent-types";
+import { resolveAgentInvocationConfig } from "#src/config/invocation-config";
 import { parseThinkingLevel, thinkingLevelError } from "#src/config/thinking-level";
 import type { ParentSnapshot } from "#src/lifecycle/parent-snapshot";
 import type { AgentSpawnConfig, ResumeCallOptions, ResumeOutcome } from "#src/lifecycle/subagent-manager";
@@ -49,6 +51,7 @@ export class SubagentsServiceAdapter implements SubagentsService {
     private readonly manager: SubagentManagerLike,
     private readonly resolveModel: (input: string, registry: ModelRegistry) => Model<any> | string,
     private readonly runtime: ServiceRuntimeLike,
+    private readonly registry: Pick<AgentConfigLookup, "resolveAgentConfig">,
   ) {}
 
   spawn(type: string, prompt: string, options?: SpawnOptions): string {
@@ -56,7 +59,8 @@ export class SubagentsServiceAdapter implements SubagentsService {
       throw new Error("No active session — cannot spawn agents outside a session.");
     }
 
-    const model = this.resolveModelOption(options?.model);
+    const { modelInput } = resolveAgentInvocationConfig(this.registry.resolveAgentConfig(type), { model: options?.model });
+    const model = this.resolveModelOption(modelInput);
     const description = options?.description ?? prompt.slice(0, 80);
 
     const snapshot = this.runtime.buildSnapshot(options?.inheritContext ?? false);
@@ -64,7 +68,7 @@ export class SubagentsServiceAdapter implements SubagentsService {
     return this.manager.spawn(snapshot, type, prompt, {
       description,
       model,
-      requestedModel: options?.model,
+      requestedModel: modelInput,
       // No toolCallId — an SDK spawn has no originating tool call, and
       // Subagent.toolCallId reporting undefined there is the truth.
       parentSession: { parentSessionFile, parentSessionId },

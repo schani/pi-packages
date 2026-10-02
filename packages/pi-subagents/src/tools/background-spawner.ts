@@ -60,6 +60,8 @@ export function spawnBackground(
     durationMs: 0,
     status: "background",
     agentId: id,
+    requestedModel: record?.requestedModel,
+    resolvedModel: record?.resolvedModel,
   };
   return textResult(
     renderSpawnNotes(notes) +

@@ -219,7 +219,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
 
   // Typed service published via Symbol.for() for cross-extension access.
   // Consumers: const { getSubagentsService } = await import("@gotgenes/pi-subagents");
-  const service = new SubagentsServiceAdapter(manager, host.resolveModel ?? resolveModel, runtime);
+  const service = new SubagentsServiceAdapter(manager, host.resolveModel ?? resolveModel, runtime, registry);
   publishSubagentsService(service);
 
   const lifecycle = new SessionLifecycleHandler(

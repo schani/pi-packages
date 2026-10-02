@@ -38,6 +38,7 @@ export function createResolvedSpawnConfig(
       prompt: options.prompt ?? "do the task",
       description,
       model: undefined,
+      requestedModel: undefined,
       effectiveMaxTurns: undefined,
       thinking: undefined,
       inheritContext: false,

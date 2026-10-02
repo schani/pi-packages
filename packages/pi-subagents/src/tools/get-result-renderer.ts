@@ -46,6 +46,8 @@ export interface GetResultDetails {
 	/** Whether the conversation was requested, so the expanded view can say where it went. */
 	verbose: boolean;
 	transcriptPath?: string;
+	requestedModel?: string;
+	resolvedModel?: { provider: string; id: string };
 }
 
 /**

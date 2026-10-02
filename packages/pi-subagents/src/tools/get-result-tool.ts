@@ -117,6 +117,8 @@ export class GetResultTool {
 			error: record.error,
 			verbose,
 			transcriptPath: record.outputFile,
+			requestedModel: record.requestedModel,
+			resolvedModel: record.resolvedModel,
 		};
 	}
 

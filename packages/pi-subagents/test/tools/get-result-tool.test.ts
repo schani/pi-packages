@@ -7,6 +7,7 @@ import {
 } from "#src/tools/get-result-tool";
 import type { Subagent } from "#src/types";
 import type { Theme } from "#src/ui/display";
+import { makeModel } from "#test/helpers/make-model";
 import { createTestSubagent, makeStubExecution } from "#test/helpers/make-subagent";
 import { createMockSession, createSubagentSessionStub, toSubagentSession } from "#test/helpers/mock-session";
 import { STUB_CTX } from "#test/helpers/stub-ctx";
@@ -98,6 +99,19 @@ describe("GetResultTool — carrier claim", () => {
 });
 
 describe("GetResultTool", () => {
+  it("reports the retained child's actual model rather than the spawn override", async () => {
+    const original = makeModel({ provider: "openai-codex", id: "gpt-6-sol" });
+    const actual = makeModel({ provider: "openai-codex", id: "gpt-6.1-sol" });
+    const record = createTestSubagent({
+      execution: makeStubExecution({ model: original, requestedModel: "Sol" }),
+    });
+    record.subagentSession = toSubagentSession(createSubagentSessionStub(createMockSession({ model: actual })));
+    const result = await execute(makeManager(new Map([["agent-1", record]])), { agent_id: "agent-1" });
+    expect(result.details).toMatchObject({
+      requestedModel: "Sol", resolvedModel: { provider: actual.provider, id: actual.id },
+    });
+  });
+
 	it("returns tool definition with correct name", () => {
 		const tool = new GetResultTool(makeManager(), testRegistry);
 		expect(tool.toToolDefinition().name).toBe("get_subagent_result");
