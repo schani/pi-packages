@@ -20,6 +20,7 @@ import { runForeground } from "#src/tools/foreground-runner";
 import { buildAgentGuidelines, buildDetails, buildTypeListText, textResult } from "#src/tools/helpers";
 import { renderAgentResult } from "#src/tools/result-renderer";
 import { type ModelInfo, resolveSpawnConfig, type SpawnPresentation } from "#src/tools/spawn-config";
+import type { resolveModel } from "#src/session/model-resolver";
 import type { ParentSessionInfo, Subagent } from "#src/types";
 import { type AgentDetails, getDisplayName, type Theme } from "#src/ui/display";
 import { GLYPHS } from "#src/ui/glyphs";
@@ -60,6 +61,7 @@ export class AgentTool {
 		private readonly settings: AgentToolSettings,
 		private readonly registry: AgentTypeRegistry,
 		private readonly agentDir: string,
+		private readonly hostResolve?: typeof resolveModel,
 	) {
 		this.typeListText = buildTypeListText(registry, agentDir);
 		this.availableTypesText = registry.getAvailableTypes().join(", ");
@@ -78,10 +80,11 @@ export class AgentTool {
 
 		// ---- Config resolution (pure) ----
 		const config = resolveSpawnConfig(
-			params,
+			params.resume ? { ...params, model: undefined } : params,
 			this.registry,
 			this.runtime.getModelInfo(),
 			this.settings,
+			params.resume ? undefined : this.hostResolve,
 		);
 		if ("error" in config) return textResult(config.error);
 
@@ -194,7 +197,7 @@ ${guidelines}
 				model: Type.Optional(
 					Type.String({
 						description:
-							'Optional model override. Accepts "provider/modelId" or a fuzzy name. Omit to use the agent type\'s default. An agent that locks this field keeps its own model and says so in the result.',
+							'Optional model override. Accepts a product alias or exact "provider/modelId". Omit to use the agent type\'s default. An agent that locks this field keeps its own model and says so in the result.',
 					}),
 				),
 				thinking: Type.Optional(

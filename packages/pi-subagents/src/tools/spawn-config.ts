@@ -12,7 +12,7 @@ import { type LockableField, resolveAgentInvocationConfig } from "#src/config/in
 import { parseThinkingLevel, thinkingLevelError } from "#src/config/thinking-level";
 import { normalizeMaxTurns } from "#src/lifecycle/turn-limits";
 import type { ModelRegistry } from "#src/session/model-resolver";
-import { resolveInvocationModel } from "#src/session/model-resolver";
+import { resolveInvocationModel, type resolveModel } from "#src/session/model-resolver";
 import type { AgentInvocation, SubagentType, ThinkingLevel } from "#src/types";
 import {
   type AgentDetails,
@@ -40,6 +40,7 @@ export interface SpawnExecution {
   prompt: string;
   description: string;
   model: Model<any> | undefined;
+  requestedModel: string | undefined;
   effectiveMaxTurns: number | undefined;
   thinking: ThinkingLevel | undefined;
   inheritContext: boolean;
@@ -79,6 +80,7 @@ export function resolveSpawnConfig(
   registry: AgentTypeRegistry,
   modelInfo: ModelInfo,
   settings: { readonly defaultMaxTurns: number | undefined },
+  hostResolve?: typeof resolveModel,
 ): ResolvedSpawnConfig | SpawnConfigError {
   // Validated at the door, so the merge below and every layer past it receive a
   // level the SDK recognizes rather than one it would clamp to "off" (Refs #834).
@@ -111,6 +113,7 @@ export function resolveSpawnConfig(
     resolvedConfig.modelInput,
     resolvedConfig.modelFromParams,
     modelInfo.modelRegistry,
+    hostResolve,
   );
   if (resolution.error) return { error: resolution.error };
   const model = resolution.model;
@@ -161,6 +164,7 @@ export function resolveSpawnConfig(
       prompt: params.prompt as string,
       description: params.description as string,
       model,
+      requestedModel: resolvedConfig.modelInput,
       effectiveMaxTurns,
       thinking,
       inheritContext,

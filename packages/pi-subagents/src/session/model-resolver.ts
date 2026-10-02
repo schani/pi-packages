@@ -43,12 +43,13 @@ export function resolveInvocationModel(
   modelInput: string | undefined,
   modelFromParams: boolean,
   registry: ModelRegistry | undefined,
+  hostResolve?: typeof resolveModel,
 ): ModelResolution {
   if (!modelInput) return { model: parentModel };
   if (!registry) return { error: "No model registry available." };
-  const resolved = resolveModel(modelInput, registry);
+  const resolved = (hostResolve ?? resolveModel)(modelInput, registry);
   if (typeof resolved !== "string") return { model: resolved };
-  if (modelFromParams) return { error: resolved };
+  if (hostResolve || modelFromParams) return { error: resolved };
   return { model: parentModel };
 }
 

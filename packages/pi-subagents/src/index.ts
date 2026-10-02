@@ -70,6 +70,8 @@ export interface SubagentsHostOptions {
   childExtensions?: InlineExtension[];
   /** Embedded hosts may keep process.cwd() outside the session's checkout. */
   cwd?: string;
+  /** Embedded host model policy for tool, SDK service, and profile defaults. */
+  resolveModel?: typeof resolveModel;
 }
 
 export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
@@ -192,6 +194,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
     },
     exec: (cmd, args, opts) => pi.exec(cmd, args, opts),
     registry,
+    resolveModel: host.resolveModel,
     lifecycle: createChildLifecyclePublisher((channel, data) => pi.events.emit(channel, data)),
     // Resolved here, at the composition root, so the assembly factory stays
     // free of the policy and gets a ready-made settings view — the same shape
@@ -216,7 +219,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
 
   // Typed service published via Symbol.for() for cross-extension access.
   // Consumers: const { getSubagentsService } = await import("@gotgenes/pi-subagents");
-  const service = new SubagentsServiceAdapter(manager, resolveModel, runtime);
+  const service = new SubagentsServiceAdapter(manager, host.resolveModel ?? resolveModel, runtime);
   publishSubagentsService(service);
 
   const lifecycle = new SessionLifecycleHandler(
@@ -262,7 +265,7 @@ export default function (pi: ExtensionAPI, host: SubagentsHostOptions = {}) {
 
   // ---- Agent tool ----
 
-  pi.registerTool(new AgentTool(manager, runtime, settings, registry, getAgentDir()).toToolDefinition());
+  pi.registerTool(new AgentTool(manager, runtime, settings, registry, getAgentDir(), host.resolveModel).toToolDefinition());
 
   // ---- get_subagent_result tool ----
 

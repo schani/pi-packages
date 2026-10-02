@@ -152,6 +152,7 @@ export interface SubagentSessionDeps {
    * reaches it in.
    */
   resolvePromptInheritance: (provider: string | undefined) => PromptInheritance;
+  resolveModel?: (input: string, registry: ParentSnapshot["modelRegistry"]) => Model<any> | string;
 }
 
 /** Per-spawn parameters — the fields that vary per child session. */
@@ -227,6 +228,7 @@ export async function createSubagentSession(
     env,
     deps.registry,
     deps.io.assemblerIO,
+    deps.resolveModel,
   );
 
   const agentDir = deps.io.getAgentDir();

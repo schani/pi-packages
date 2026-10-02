@@ -95,6 +95,8 @@ export class SubagentEventsObserver implements SubagentManagerObserver {
 			error: record.error,
 			startedAt: record.startedAt,
 			completedAt: record.completedAt,
+			requestedModel: record.requestedModel,
+			resolvedModel: record.resolvedModel,
 		});
 		this.notifications.sendCompletion(record);
 	}

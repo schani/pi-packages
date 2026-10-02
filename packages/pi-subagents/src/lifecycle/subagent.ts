@@ -98,6 +98,7 @@ export interface SubagentExecution {
 	/** Resolves the registered workspace provider (if any) at run-start. */
 	getWorkspaceProvider?: () => WorkspaceProvider | undefined;
 	model?: Model<any>;
+	requestedModel?: string;
 	maxTurns?: number;
 	thinkingLevel?: ThinkingLevel;
 	parentSession?: ParentSessionInfo;
@@ -164,6 +165,11 @@ export class Subagent {
 	isRunning(): boolean { return this.state.isRunning(); }
 	canBeSteered(): boolean { return this.state.canBeSteered(); }
 	get maxTurns(): number | undefined { return this.execution.maxTurns; }
+	get requestedModel(): string | undefined { return this.execution.requestedModel; }
+	get resolvedModel(): { provider: string; id: string } | undefined {
+		const model = this.subagentSession?.session.model ?? this.execution.model ?? this.execution.snapshot.model;
+		return model && { provider: model.provider, id: model.id };
+	}
 
 	abortController: AbortController;
 	private _promise?: Promise<void>;

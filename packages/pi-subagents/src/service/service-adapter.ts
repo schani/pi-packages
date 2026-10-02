@@ -64,6 +64,7 @@ export class SubagentsServiceAdapter implements SubagentsService {
     return this.manager.spawn(snapshot, type, prompt, {
       description,
       model,
+      requestedModel: options?.model,
       // No toolCallId — an SDK spawn has no originating tool call, and
       // Subagent.toolCallId reporting undefined there is the truth.
       parentSession: { parentSessionFile, parentSessionId },

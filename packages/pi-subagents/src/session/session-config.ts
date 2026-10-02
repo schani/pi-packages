@@ -116,7 +116,13 @@ function resolveDefaultModel(
   parentModel: Model<any> | undefined,
   registry: AssemblerContext["modelRegistry"],
   configModel?: string,
+  hostResolve?: (input: string, registry: AssemblerContext["modelRegistry"]) => Model<any> | string,
 ): Model<any> | undefined {
+  if (configModel && hostResolve) {
+    const resolved = hostResolve(configModel, registry);
+    if (typeof resolved === "string") throw new Error(resolved);
+    return resolved;
+  }
   if (configModel) {
     const slashIdx = configModel.indexOf("/");
     if (slashIdx !== -1) {
@@ -160,6 +166,7 @@ export function assembleSessionConfig(
   env: EnvInfo,
   registry: AgentConfigLookup,
   io: AssemblerIO,
+  hostResolve?: (input: string, registry: AssemblerContext["modelRegistry"]) => Model<any> | string,
 ): SessionConfig {
   const agentConfig = registry.resolveAgentConfig(type);
 
@@ -173,7 +180,7 @@ export function assembleSessionConfig(
   // independent, so the order is free.
   const model =
     options.model ??
-    resolveDefaultModel(ctx.parentModel, ctx.modelRegistry, agentConfig.model);
+    resolveDefaultModel(ctx.parentModel, ctx.modelRegistry, agentConfig.model, hostResolve);
 
   // Build system prompt from the resolved agent config. The strategy is keyed
   // on the child's own provider, so a per-spawn model override moves the child

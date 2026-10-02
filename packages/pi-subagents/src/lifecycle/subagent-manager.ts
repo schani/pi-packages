@@ -175,6 +175,7 @@ export interface SubagentManagerOptions {
 export interface AgentSpawnConfig {
   description: string;
   model?: Model<any>;
+  requestedModel?: string;
   maxTurns?: number;
   inheritContext?: boolean;
   thinkingLevel?: ThinkingLevel;
@@ -366,6 +367,7 @@ export class SubagentManager {
         getRunConfig: this.getRunConfig,
         getWorkspaceProvider: () => this._workspaceProvider,
         model: options.model,
+        requestedModel: options.requestedModel,
         maxTurns: options.maxTurns,
         thinkingLevel: options.thinkingLevel,
         parentSession: options.parentSession,

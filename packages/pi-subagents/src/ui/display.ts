@@ -31,6 +31,8 @@ export interface AgentDetails {
   spinnerFrame?: number;
   /** Short model name if different from parent (e.g. "haiku", "sonnet"). */
   modelName?: string;
+  requestedModel?: string;
+  resolvedModel?: { provider: string; id: string };
   /** Notable config tags (e.g. ["thinking: high", "inherit context"]). */
   tags?: string[];
   /** Current turn count. */

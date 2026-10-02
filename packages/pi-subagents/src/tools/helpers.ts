@@ -16,6 +16,8 @@ export function buildDetails(
     /** Live-activity counters — exposed as getters on Subagent (Phase 18 Step 2). */
     turnCount?: number;
     maxTurns?: number;
+    requestedModel?: string;
+    resolvedModel?: { provider: string; id: string };
   },
   overrides?: Partial<AgentDetails>,
 ): AgentDetails {
@@ -28,6 +30,8 @@ export function buildDetails(
     durationMs: (record.completedAt ?? Date.now()) - record.startedAt,
     status: record.status as AgentDetails["status"],
     agentId: record.id,
+    requestedModel: record.requestedModel,
+    resolvedModel: record.resolvedModel,
     error: record.error,
     ...overrides,
   };
